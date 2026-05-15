@@ -3,11 +3,20 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from agent.tools import compact_json
 
 DANGEROUS_RE = re.compile(
     r"(?i)(apply|pay|send|confirm|delete|remove|buy|checkout|submit application|отправ|отклик|подтверд|удал|оплат|купить|заказ)"
 )
+
+
+def _action_contains_dangerous_text(obj: Any) -> bool:
+    if isinstance(obj, str):
+        return bool(DANGEROUS_RE.search(obj))
+    elif isinstance(obj, dict):
+        return any(_action_contains_dangerous_text(k) or _action_contains_dangerous_text(v) for k, v in obj.items())
+    elif isinstance(obj, list):
+        return any(_action_contains_dangerous_text(item) for item in obj)
+    return False
 
 
 def is_high_risk(
@@ -32,8 +41,7 @@ def is_high_risk(
             return True, "typing text and pressing Enter may submit a high-risk form"
 
     if tool == "press_key" and str(args.get("key", "")).lower() == "enter":
-        action_text = compact_json(action)
-        if DANGEROUS_RE.search(action_text):
+        if _action_contains_dangerous_text(action):
             return True, "pressing Enter appears related to a high-risk action"
 
     return False, ""
@@ -69,10 +77,29 @@ def _snapshot_context_for_ref(snapshot_yaml: str, ref: str, radius: int = 2) -> 
     if not ref:
         return ""
     token = f"[ref={ref}]"
-    lines = snapshot_yaml.splitlines()
-    for index, line in enumerate(lines):
-        if token in line:
-            start = max(0, index - radius)
-            end = min(len(lines), index + radius + 1)
-            return "\n".join(lines[start:end])
-    return ""
+
+    idx = snapshot_yaml.find(token)
+    if idx == -1:
+        return ""
+
+    # Find start
+    start = idx
+    for _ in range(radius + 1):
+        start = snapshot_yaml.rfind('\n', 0, start)
+        if start == -1:
+            start = 0
+            break
+
+    if start != 0:
+        start += 1
+
+    # Find end
+    end = idx
+    for _ in range(radius + 1):
+        next_end = snapshot_yaml.find('\n', end + 1) if end < len(snapshot_yaml) else -1
+        if next_end == -1:
+            end = len(snapshot_yaml)
+            break
+        end = next_end
+
+    return snapshot_yaml[start:end]
