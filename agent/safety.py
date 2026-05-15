@@ -5,13 +5,14 @@ from typing import Any
 
 from agent.tools import compact_json
 
-
 DANGEROUS_RE = re.compile(
     r"(?i)(apply|pay|send|confirm|delete|remove|buy|checkout|submit application|отправ|отклик|подтверд|удал|оплат|купить|заказ)"
 )
 
 
-def is_high_risk(action: dict[str, Any], current_obs: dict[str, Any]) -> tuple[bool, str]:
+def is_high_risk(
+    action: dict[str, Any], current_obs: dict[str, Any]
+) -> tuple[bool, str]:
     if action.get("needs_user_confirmation") is True:
         return True, "planner requested user confirmation"
 
@@ -46,10 +47,22 @@ def _snapshot_line_for_ref(snapshot_yaml: str, ref: str) -> str:
     if not ref:
         return ""
     token = f"[ref={ref}]"
-    for line in snapshot_yaml.splitlines():
-        if token in line:
-            return line
-    return ""
+
+    idx = snapshot_yaml.find(token)
+    if idx == -1:
+        return ""
+
+    start_idx = snapshot_yaml.rfind("\n", 0, idx)
+    if start_idx == -1:
+        start_idx = 0
+    else:
+        start_idx += 1
+
+    end_idx = snapshot_yaml.find("\n", idx)
+    if end_idx == -1:
+        end_idx = len(snapshot_yaml)
+
+    return snapshot_yaml[start_idx:end_idx].strip("\r")
 
 
 def _snapshot_context_for_ref(snapshot_yaml: str, ref: str, radius: int = 2) -> str:
