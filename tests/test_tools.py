@@ -1,15 +1,12 @@
-
-# Mock rich before importing agent.tools
-
-
-
 from datetime import datetime
 from agent.tools import compact_json
+
 
 def test_compact_json_basic_dict():
     data = {"name": "Alice", "age": 30}
     result = compact_json(data)
     assert result == '{"name": "Alice", "age": 30}'
+
 
 def test_compact_json_unicode():
     data = {"emoji": "🔥", "greeting": "こんにちは"}
@@ -19,6 +16,7 @@ def test_compact_json_unicode():
     assert "こんにちは" in result
     assert result == '{"emoji": "🔥", "greeting": "こんにちは"}'
 
+
 def test_compact_json_default_str():
     # Test with a datetime object which is not JSON serializable by default
     dt = datetime(2023, 1, 1, 12, 0, 0)
@@ -27,6 +25,7 @@ def test_compact_json_default_str():
     # default=str should convert datetime to its string representation
     assert str(dt) in result
     assert result == f'{{"timestamp": "{str(dt)}"}}'
+
 
 def test_compact_json_custom_object():
     class Custom:

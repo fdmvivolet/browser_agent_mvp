@@ -32,4 +32,3 @@ def test_playwright_aria_refs_can_drive_clicks() -> None:
         page.locator(f"aria-ref={button_ref}").click(timeout=5000)
         assert page.locator("#status").inner_text() == "clicked"
         browser.close()
-

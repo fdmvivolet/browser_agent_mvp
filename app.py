@@ -10,15 +10,18 @@ app = Flask(__name__)
 
 agent_thread = None
 
+
 @app.route("/")
 def index():
     return render_template("index.html")
+
 
 @app.route("/logs")
 def logs():
     start_idx = int(request.args.get("start", 0))
     new_logs = ui_logs[start_idx:]
     return jsonify({"logs": new_logs, "next_index": len(ui_logs)})
+
 
 @app.route("/state")
 def get_state():
@@ -39,11 +42,14 @@ def get_state():
     except Exception:
         pass
 
-    return jsonify({
-        "facts": facts,
-        "history_len": history_len,
-        "is_running": agent_thread is not None and agent_thread.is_alive()
-    })
+    return jsonify(
+        {
+            "facts": facts,
+            "history_len": history_len,
+            "is_running": agent_thread is not None and agent_thread.is_alive(),
+        }
+    )
+
 
 @app.route("/input", methods=["POST"])
 def handle_input():
@@ -68,16 +74,20 @@ def handle_input():
         user_input_queue.append(text)
         return jsonify({"status": "input_queued"})
 
+
 @app.route("/interrupt", methods=["POST"])
 def interrupt():
     interrupt_event.set()
     return jsonify({"status": "interrupt_sent"})
 
+
 @app.route("/clear", methods=["POST"])
 def clear():
     global agent_thread
     if agent_thread is not None and agent_thread.is_alive():
-        return jsonify({"status": "error", "message": "Cannot clear while agent is running"}), 400
+        return jsonify(
+            {"status": "error", "message": "Cannot clear while agent is running"}
+        ), 400
 
     ui_logs.clear()
     user_input_queue.clear()
@@ -91,6 +101,7 @@ def clear():
         pass
 
     return jsonify({"status": "cleared"})
+
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)

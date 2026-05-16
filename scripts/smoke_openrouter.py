@@ -11,7 +11,9 @@ def main() -> int:
     load_dotenv(dotenv_path=Path.cwd() / ".env")
     api_key = os.getenv("OPENROUTER_API_KEY", "")
     if not api_key:
-        print("OPENROUTER_API_KEY is missing. Create .env from .env.example and add the key.")
+        print(
+            "OPENROUTER_API_KEY is missing. Create .env from .env.example and add the key."
+        )
         return 1
 
     model = os.getenv("MODEL", "google/gemma-4-31b-it:free")
