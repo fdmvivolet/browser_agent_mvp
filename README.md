@@ -4,6 +4,8 @@
 
 A local autonomous browser agent in Python. The user gives a natural-language task, the agent opens visible Chromium, observes the current page through Playwright ARIA snapshots, asks an LLM for one structured next action, applies safety checks, executes a generic browser tool, and repeats until done.
 
+It features both a CLI and a Flask-based SaaS-like multi-pane dashboard UI for managing tasks and monitoring progress.
+
 This is a generic browser agent, not a site-specific bot.
 
 ## Demo
@@ -57,9 +59,20 @@ $env:PYTHONIOENCODING = "utf-8"
 python run.py --start-url https://hh.ru --login-wait "Найди 2 вакансии AI engineer в Москве на hh.ru, изучи описание и подготовь короткие сопроводительные письма. Перед отправкой откликов обязательно спроси подтверждение."
 ```
 
+Or you can start the SaaS-like multi-pane dashboard Web UI:
+
+```powershell
+python app.py
+```
+
+Then open `http://localhost:5000` in your browser.
+
+
 ## Architecture in 60 seconds
 
 `observe -> decide -> safety gate -> act -> memory/logs -> repeat`
+
+The system uses a Flask-based Web UI (`app.py` serving `templates/index.html`) as the primary interface, running the main agent execution loop in a separate background thread.
 
 1. Playwright observes the page with `page.locator("body").aria_snapshot(mode="ai")`.
 2. The planner LLM returns exactly one JSON action.
