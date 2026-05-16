@@ -35,4 +35,3 @@ def test_prompt_payload_truncates_large_observation() -> None:
     assert payload["current_page"]["url"] == "https://example.test"
     assert len(payload["current_page"]["snapshot_yaml"]) < 12200
     assert len(payload["current_page"]["body_text_excerpt"]) < 6200
-

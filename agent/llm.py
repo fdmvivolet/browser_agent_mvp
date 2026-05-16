@@ -18,7 +18,6 @@ from openai import (
 from pydantic import BaseModel, Field, ValidationError
 
 from agent.prompts import SUBAGENT_PROMPT, SYSTEM_PROMPT
-from agent.tools import TOOL_DESCRIPTIONS
 
 ToolName = Literal[
     "goto",
@@ -47,13 +46,33 @@ RETRY_BACKOFF_SECONDS = (2.0, 5.0)
 MAX_RETRY_AFTER_SECONDS = 10.0
 
 
+class SubGoal(BaseModel):
+    subgoal_id: str
+    instruction: str
+    tab_context_id: str = ""
+    dependencies: list[str] = Field(default_factory=list)
+
+
+class MCPRequest(BaseModel):
+    server: str
+    tool_name: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+
+
+class AGUIPayload(BaseModel):
+    reason: str
+    ui_type: Literal["approval", "mfa_input", "captcha_bypass"] | str
+
+
 class PlannerAction(BaseModel):
-    thought: str
-    tool: ToolName
-    args: dict[str, Any] = Field(default_factory=dict)
-    risk: Literal["low", "medium", "high"] = "low"
-    needs_user_confirmation: bool = False
-    new_facts: dict[str, Any] = Field(default_factory=dict)
+    thought_process: str
+    self_correction: str | None = None
+    action_type: Literal[
+        "delegate_actor", "mcp_tool_call", "ag_ui_interrupt", "goal_complete"
+    ]
+    dag_subgoals: list[SubGoal] = Field(default_factory=list)
+    mcp_request: MCPRequest | None = None
+    ag_ui_payload: AGUIPayload | None = None
 
 
 class ProviderUnavailableError(Exception):
@@ -83,7 +102,9 @@ class LLMClient:
                 },
             )
 
-    def plan(self, prompt_payload: dict[str, Any], screenshot_base64: str | None = None) -> dict[str, Any]:
+    def plan(
+        self, prompt_payload: dict[str, Any], screenshot_base64: str | None = None
+    ) -> dict[str, Any]:
         if not self.client:
             return self._missing_key_action()
 
@@ -96,7 +117,10 @@ class LLMClient:
         if screenshot_base64:
             user_message = [
                 {"type": "text", "text": user_prompt},
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{screenshot_base64}"}}
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{screenshot_base64}"},
+                },
             ]
 
         messages = [
@@ -137,7 +161,10 @@ class LLMClient:
         if screenshot_base64:
             user_message = [
                 {"type": "text", "text": user_content},
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{screenshot_base64}"}}
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{screenshot_base64}"},
+                },
             ]
 
         messages = [
@@ -203,14 +230,15 @@ class LLMClient:
                 )
 
         return {
-            "thought": "The model returned invalid JSON and the agent cannot safely continue.",
-            "tool": "ask_user",
-            "args": {
-                "question": "The LLM returned invalid JSON twice. What should I do next?"
+            "thought_process": f"The model returned invalid JSON and the agent cannot safely continue. Last error: {last_error}",
+            "self_correction": "Falling back to human-in-the-loop due to continuous parsing errors.",
+            "action_type": "ag_ui_interrupt",
+            "dag_subgoals": [],
+            "mcp_request": None,
+            "ag_ui_payload": {
+                "reason": "The LLM returned invalid JSON twice. What should I do next?",
+                "ui_type": "approval",
             },
-            "risk": "medium",
-            "needs_user_confirmation": True,
-            "new_facts": {"last_parser_error": last_error},
         }
 
     def _chat_completion_with_retries(self, model: str, **kwargs: Any) -> Any:
@@ -305,37 +333,34 @@ class LLMClient:
     def _parse_action(content: str) -> PlannerAction:
         text = strip_json_fences(content)
         data = json.loads(text)
-        if data.get("tool") not in TOOL_DESCRIPTIONS:
-            raise ValueError(f"Unknown tool: {data.get('tool')}")
         return PlannerAction.model_validate(data)
 
     @staticmethod
     def _missing_key_action() -> dict[str, Any]:
         return {
-            "thought": "OpenRouter is not configured, so I need the user to add an API key before planning.",
-            "tool": "ask_user",
-            "args": {
-                "question": "OPENROUTER_API_KEY is missing in .env. Add it, then rerun the agent."
+            "thought_process": "OpenRouter is not configured, so I need the user to add an API key before planning.",
+            "self_correction": None,
+            "action_type": "ag_ui_interrupt",
+            "dag_subgoals": [],
+            "mcp_request": None,
+            "ag_ui_payload": {
+                "reason": "OPENROUTER_API_KEY is missing in .env. Add it, then rerun the agent.",
+                "ui_type": "approval",
             },
-            "risk": "medium",
-            "needs_user_confirmation": False,
-            "new_facts": {},
         }
 
     @staticmethod
     def _provider_unavailable_action() -> dict[str, Any]:
         return {
-            "thought": "The LLM provider is temporarily unavailable, so I need user guidance instead of crashing.",
-            "tool": "ask_user",
-            "args": {
-                "question": (
-                    "The LLM provider returned an error or rate limit. Type 'retry' to try again, "
-                    "'stop' to stop, or switch MODEL in .env and rerun."
-                )
+            "thought_process": "The LLM provider is temporarily unavailable, so I need user guidance instead of crashing.",
+            "self_correction": None,
+            "action_type": "ag_ui_interrupt",
+            "dag_subgoals": [],
+            "mcp_request": None,
+            "ag_ui_payload": {
+                "reason": "The LLM provider returned an error or rate limit. Type 'retry' to try again, 'stop' to stop, or switch MODEL in .env and rerun.",
+                "ui_type": "approval",
             },
-            "risk": "medium",
-            "needs_user_confirmation": True,
-            "new_facts": {},
         }
 
 

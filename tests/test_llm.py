@@ -10,19 +10,21 @@ from agent.llm import LLMClient
 
 
 def _chat_response(content: str) -> SimpleNamespace:
-    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+    return SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content=content))]
+    )
 
 
 def _planner_done_response() -> SimpleNamespace:
     return _chat_response(
         json.dumps(
             {
-                "thought": "The task is complete.",
-                "tool": "done",
-                "args": {"summary": "ok", "status": "success"},
-                "risk": "low",
-                "needs_user_confirmation": False,
-                "new_facts": {},
+                "thought_process": "The task is complete.",
+                "self_correction": None,
+                "action_type": "goal_complete",
+                "dag_subgoals": [],
+                "mcp_request": None,
+                "ag_ui_payload": None,
             }
         )
     )
@@ -31,7 +33,9 @@ def _planner_done_response() -> SimpleNamespace:
 def _rate_limit_error() -> RateLimitError:
     request = httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions")
     response = httpx.Response(429, request=request, headers={"retry-after": "0"})
-    return RateLimitError("temporarily rate-limited upstream", response=response, body=None)
+    return RateLimitError(
+        "temporarily rate-limited upstream", response=response, body=None
+    )
 
 
 def _api_status_error() -> APIStatusError:
@@ -82,9 +86,12 @@ def test_plan_retries_primary_then_uses_fallback(capsys) -> None:
 
     action = llm.plan({"goal": "test"})
 
-    assert action["tool"] == "done"
+    assert action["action_type"] == "goal_complete"
     assert completions.models == ["primary", "primary", "primary", "fallback"]
-    assert "LLM provider failed for primary, trying fallback fallback..." in capsys.readouterr().out
+    assert (
+        "LLM provider failed for primary, trying fallback fallback..."
+        in capsys.readouterr().out
+    )
 
 
 def test_plan_returns_safe_ask_user_when_all_models_fail() -> None:
@@ -99,17 +106,15 @@ def test_plan_returns_safe_ask_user_when_all_models_fail() -> None:
     action = llm.plan({"goal": "test"})
 
     assert action == {
-        "thought": "The LLM provider is temporarily unavailable, so I need user guidance instead of crashing.",
-        "tool": "ask_user",
-        "args": {
-            "question": (
-                "The LLM provider returned an error or rate limit. Type 'retry' to try again, "
-                "'stop' to stop, or switch MODEL in .env and rerun."
-            )
+        "thought_process": "The LLM provider is temporarily unavailable, so I need user guidance instead of crashing.",
+        "self_correction": None,
+        "action_type": "ag_ui_interrupt",
+        "dag_subgoals": [],
+        "mcp_request": None,
+        "ag_ui_payload": {
+            "reason": "The LLM provider returned an error or rate limit. Type 'retry' to try again, 'stop' to stop, or switch MODEL in .env and rerun.",
+            "ui_type": "approval",
         },
-        "risk": "medium",
-        "needs_user_confirmation": True,
-        "new_facts": {},
     }
 
 
@@ -122,7 +127,9 @@ def test_query_page_provider_failure_returns_error_result() -> None:
     )
     llm = _llm_with_fake_client(completions)
 
-    result = llm.query_page({"url": "https://example.test", "snapshot_yaml": ""}, "What is visible?")
+    result = llm.query_page(
+        {"url": "https://example.test", "snapshot_yaml": ""}, "What is visible?"
+    )
 
     assert result["ok"] is False
     assert result["message"] == "LLM provider temporarily unavailable"

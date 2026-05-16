@@ -45,7 +45,9 @@ class Browser:
             user_agent=DEFAULT_USER_AGENT,
         )
         self.context.set_default_timeout(8000)
-        self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
+        self.page = (
+            self.context.pages[0] if self.context.pages else self.context.new_page()
+        )
         self.page.set_default_timeout(8000)
 
     def close(self) -> None:
@@ -78,10 +80,12 @@ class Browser:
 
         try:
             # Capture a low-res JPEG screenshot for vision models
-            screenshot_bytes = page.screenshot(type="jpeg", quality=40, scale="css", timeout=5000)
+            screenshot_bytes = page.screenshot(
+                type="jpeg", quality=40, scale="css", timeout=5000
+            )
             screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
         except Exception:
-            pass # Non-fatal if screenshot fails
+            pass  # Non-fatal if screenshot fails
 
         return {
             "ok": error is None,
@@ -110,7 +114,14 @@ class Browser:
                 raise RuntimeError(f"hostname resolution failed: {e}")
 
             ip_obj = ipaddress.ip_address(ip)
-            if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local or ip_obj.is_multicast or ip_obj.is_unspecified or ip_obj.is_reserved:
+            if (
+                ip_obj.is_private
+                or ip_obj.is_loopback
+                or ip_obj.is_link_local
+                or ip_obj.is_multicast
+                or ip_obj.is_unspecified
+                or ip_obj.is_reserved
+            ):
                 raise ValueError("resolved to an internal/private IP")
 
             self._page().goto(url, wait_until="domcontentloaded", timeout=15000)
@@ -149,7 +160,12 @@ class Browser:
             self._settle()
             return self._ok(
                 "typed text",
-                {"ref": ref, "submitted": submit, "chars": len(text), "url": self._page().url},
+                {
+                    "ref": ref,
+                    "submitted": submit,
+                    "chars": len(text),
+                    "url": self._page().url,
+                },
             )
         except Exception as exc:
             return self._err(f"type_text failed for ref={ref}", exc)
@@ -193,7 +209,9 @@ class Browser:
             filename = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f.png")
             path = screenshot_dir / filename
             self._page().screenshot(path=str(path), full_page=full_page, timeout=10000)
-            return self._ok("saved screenshot", {"path": str(path), "full_page": full_page})
+            return self._ok(
+                "saved screenshot", {"path": str(path), "full_page": full_page}
+            )
         except Exception as exc:
             return self._err("screenshot failed", exc)
 
@@ -208,23 +226,38 @@ class Browser:
             text = locator.inner_text(timeout=5000)
             return self._ok(
                 "extracted text",
-                {"ref": normalized_ref, "text": self._truncate(text, 12000), "chars": len(text)},
+                {
+                    "ref": normalized_ref,
+                    "text": self._truncate(text, 12000),
+                    "chars": len(text),
+                },
             )
         except Exception as exc:
             return self._err("extract_text failed", exc)
 
-
     def extract_dom(self, selector: str) -> dict[str, Any]:
         try:
             html = self._page().locator(selector).first.evaluate("el => el.outerHTML")
-            return self._ok("extracted DOM", {"selector": selector, "html": self._truncate(html, 10000)})
+            return self._ok(
+                "extracted DOM",
+                {"selector": selector, "html": self._truncate(html, 10000)},
+            )
         except Exception as exc:
             return self._err("extract_dom failed", exc)
 
     def extract_css(self, selector: str, property: str) -> dict[str, Any]:
         try:
-            val = self._page().locator(selector).first.evaluate(f"el => window.getComputedStyle(el).getPropertyValue('{property}')")
-            return self._ok("extracted CSS", {"selector": selector, "property": property, "value": val})
+            val = (
+                self._page()
+                .locator(selector)
+                .first.evaluate(
+                    f"el => window.getComputedStyle(el).getPropertyValue('{property}')"
+                )
+            )
+            return self._ok(
+                "extracted CSS",
+                {"selector": selector, "property": property, "value": val},
+            )
         except Exception as exc:
             return self._err("extract_css failed", exc)
 
@@ -232,9 +265,13 @@ class Browser:
         try:
             # Common close button selectors
             selectors = [
-                "button[aria-label='Close']", "button[aria-label='close']",
-                ".close-button", ".modal-close", "[data-testid='close-button']",
-                "button:has-text('Dismiss')", "button:has-text('Close')"
+                "button[aria-label='Close']",
+                "button[aria-label='close']",
+                ".close-button",
+                ".modal-close",
+                "[data-testid='close-button']",
+                "button:has-text('Dismiss')",
+                "button:has-text('Close')",
             ]
             for s in selectors:
                 loc = self._page().locator(s).first

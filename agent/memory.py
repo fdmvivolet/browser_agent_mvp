@@ -4,6 +4,7 @@ from collections import deque
 from typing import Any
 import sqlite3
 
+
 class Memory:
     def __init__(self, goal: str, db_path: str = "memory.db") -> None:
         self.goal = goal
@@ -40,7 +41,9 @@ class Memory:
                 "thought": self._truncate(str(action.get("thought", "")), 500),
                 "tool": action.get("tool"),
                 "args": self._compact_args(action.get("args", {})),
-                "result_ok": bool(result.get("ok", False)) if isinstance(result, dict) else False,
+                "result_ok": bool(result.get("ok", False))
+                if isinstance(result, dict)
+                else False,
                 "result_message": self._truncate(str(result.get("message", "")), 500)
                 if isinstance(result, dict)
                 else "",
@@ -57,7 +60,7 @@ class Memory:
                 self.facts[str(key)] = val_str
                 conn.execute(
                     "INSERT OR REPLACE INTO facts (key, value) VALUES (?, ?)",
-                    (str(key), val_str)
+                    (str(key), val_str),
                 )
 
     def get_current_screenshot(self) -> str | None:

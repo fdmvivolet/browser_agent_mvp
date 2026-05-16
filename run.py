@@ -40,8 +40,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("task", nargs="+", help="Natural-language task for the agent.")
     parser.add_argument("--start-url", help="URL to open before starting the agent.")
     parser.add_argument("--max-steps", type=int, help="Maximum agent loop steps.")
-    parser.add_argument("--login-wait", action="store_true", help="Pause for manual login before agent starts.")
-    parser.add_argument("--dry-run", action="store_true", help="Open browser, observe once, and exit without LLM calls.")
+    parser.add_argument(
+        "--login-wait",
+        action="store_true",
+        help="Pause for manual login before agent starts.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Open browser, observe once, and exit without LLM calls.",
+    )
     return parser.parse_args()
 
 
@@ -71,7 +79,9 @@ def main() -> int:
                 f"Refs: {obs.get('snapshot_yaml', '').count('[ref=')}\n"
                 "No OpenRouter call was made."
             )
-            console.print(Panel(summary, title="Dry run observation", border_style="cyan"))
+            console.print(
+                Panel(summary, title="Dry run observation", border_style="cyan")
+            )
             return 0
 
         result = run_agent(goal=goal, browser=browser, max_steps=max_steps)
@@ -80,4 +90,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
