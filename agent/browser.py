@@ -251,7 +251,8 @@ class Browser:
                 self._page()
                 .locator(selector)
                 .first.evaluate(
-                    f"el => window.getComputedStyle(el).getPropertyValue('{property}')"
+                    "(el, prop) => window.getComputedStyle(el).getPropertyValue(prop)",
+                    property,
                 )
             )
             return self._ok(
