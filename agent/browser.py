@@ -273,12 +273,17 @@ class Browser:
                 "button:has-text('Dismiss')",
                 "button:has-text('Close')",
             ]
-            for s in selectors:
-                loc = self._page().locator(s).first
-                if loc.is_visible(timeout=500):
-                    loc.click(timeout=1000)
-                    self._settle()
-                    return self._ok("dismissed popup", {"selector": s})
+            # Combine all selectors with the :visible pseudo-class for concurrent checking.
+            # This turns 7 sequential 500ms wait checks into a single query.
+            combined_selector = ", ".join([f"{s}:visible" for s in selectors])
+            loc = self._page().locator(combined_selector).first
+
+            if loc.is_visible(timeout=500):
+                loc.click(timeout=1000)
+                self._settle()
+                return self._ok(
+                    "dismissed popup", {"selector": "combined-popup-selector"}
+                )
             return self._ok("no common popup found", {})
         except Exception as exc:
             return self._err("dismiss_popup failed", exc)
