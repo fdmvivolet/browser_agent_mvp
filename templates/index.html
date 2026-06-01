@@ -490,7 +490,10 @@
             // Tool usage
             else if (logText.includes("Using tool:")) {
                 div.className = "message agent";
-                div.innerHTML = `<strong>🛠️ Action:</strong> ${logText.replace(/\[\/?bold[^\]]*\]/g, "").replace("Using tool: ", "")}`;
+                const strong = document.createElement("strong");
+                strong.innerText = "🛠️ Action:";
+                div.appendChild(strong);
+                div.appendChild(document.createTextNode(" " + logText.replace(/\[\/?bold[^\]]*\]/g, "").replace("Using tool: ", "")));
             }
             // Final report
             else if (logText.includes("Final report")) {
@@ -548,7 +551,13 @@
                         keys.forEach(k => {
                             const d = document.createElement('div');
                             d.style.marginBottom = '8px';
-                            d.innerHTML = `<strong>${k}:</strong> <span style="font-family: monospace;">${data.facts[k]}</span>`;
+                            const strong = document.createElement("strong");
+                            strong.innerText = `${k}:`;
+                            d.appendChild(strong);
+                            const span = document.createElement("span");
+                            span.style.fontFamily = "monospace";
+                            span.innerText = " " + data.facts[k];
+                            d.appendChild(span);
                             list.appendChild(d);
                         });
                     }
