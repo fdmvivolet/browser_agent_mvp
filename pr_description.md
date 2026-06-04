@@ -1,9 +1,13 @@
-Refactored the agent to align with the "Orchestrator" persona and strict JSON architectural requirements.
+Merge and resolve all open PRs
 
-**Changes:**
-- Updated `agent/prompts.py` to enforce the DAG planning structure, MCP integration, HMT guidelines, and strict JSON output formats.
-- Updated `agent/llm.py`'s `PlannerAction` Pydantic model to correctly handle fields like `thought_process`, `self_correction`, `action_type`, `dag_subgoals`, `mcp_request`, and `ag_ui_payload`.
-- Rewrote the payload schemas for edge cases (missing API key, provider unavailable, JSON fallback).
-- Updated `agent/core.py` to dispatch based on `action_type`.
-- Updated `agent/tools.py` to handle the new action types.
-- Fixed existing test specs to work with the updated JSON shapes.
+🎯 **What:** Merged all 25 open pull requests locally.
+The branches contained features, bug fixes, refactorings, security fixes (like XSS mitigation), code health improvements, and test additions.
+
+⚠️ **Risk:** Potential merge conflicts and artifacts.
+Due to the sheer number of PRs merged simultaneously, there were several merge conflicts, notably in `templates/index.html` regarding the XSS fix, `tests/test_browser_dismiss_popup.py`, and `agent/prompts.py`.
+
+🛡️ **Solution:** Resolved all conflicts safely.
+- For `templates/index.html`, carefully merged the secure DOM API manipulation (using `document.createElement`, `textContent`) over the `innerHTML` usage, preserving both the XSS fix and the structure.
+- For `tests/test_browser_dismiss_popup.py`, successfully integrated the test file, resolving a simple structural conflict.
+- For `agent/prompts.py`, removed the duplicate `VALIDATOR_PROMPT` definition artifact that occurred due to branch merging.
+- Finally, ran `ruff check` and tests (`pytest`) to ensure all changes work successfully.
