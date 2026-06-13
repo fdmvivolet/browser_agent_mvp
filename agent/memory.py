@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from collections import deque
 from typing import Any
 import sqlite3
@@ -54,14 +53,18 @@ class Memory:
     def merge_facts(self, new_facts: dict[str, Any] | None) -> None:
         if not new_facts:
             return
+
+        insert_data = []
+        for key, value in new_facts.items():
+            val_str = self._truncate(str(value), 1000)
+            self.facts[str(key)] = val_str
+            insert_data.append((str(key), val_str))
+
         with sqlite3.connect(self.db_path) as conn:
-            for key, value in new_facts.items():
-                val_str = self._truncate(str(value), 1000)
-                self.facts[str(key)] = val_str
-                conn.execute(
-                    "INSERT OR REPLACE INTO facts (key, value) VALUES (?, ?)",
-                    (str(key), val_str),
-                )
+            conn.executemany(
+                "INSERT OR REPLACE INTO facts (key, value) VALUES (?, ?)",
+                insert_data,
+            )
 
     def get_current_screenshot(self) -> str | None:
         if not self.current_obs:
