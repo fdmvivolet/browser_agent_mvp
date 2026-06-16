@@ -1,9 +1,11 @@
-Refactored the agent to align with the "Orchestrator" persona and strict JSON architectural requirements.
+Resolves all open pull requests and merge conflicts.
 
-**Changes:**
-- Updated `agent/prompts.py` to enforce the DAG planning structure, MCP integration, HMT guidelines, and strict JSON output formats.
-- Updated `agent/llm.py`'s `PlannerAction` Pydantic model to correctly handle fields like `thought_process`, `self_correction`, `action_type`, `dag_subgoals`, `mcp_request`, and `ag_ui_payload`.
-- Rewrote the payload schemas for edge cases (missing API key, provider unavailable, JSON fallback).
-- Updated `agent/core.py` to dispatch based on `action_type`.
-- Updated `agent/tools.py` to handle the new action types.
-- Fixed existing test specs to work with the updated JSON shapes.
+This PR consolidates and successfully resolves conflicts for all recent feature and fix branches, including:
+- Updating system prompts (`agent/prompts.py`) to include the new Orchestrator and Validator definitions.
+- Refactoring `agent/llm.py` to use Pydantic models for the PlannerAction schema.
+- Fixing DOM XSS vulnerabilities in `templates/index.html`.
+- Adding robust database persistence tests to `tests/test_memory.py`.
+- Adding popup dismissal tests to `tests/test_browser_dismiss_popup.py`.
+- Fixing unused imports across the repository.
+
+Care was taken during the resolution to preserve `from __future__ import annotations` and ensure the `agent/core.py` and `tests/test_browser_ssrf.py` remained unchanged by conflicting PRs.
