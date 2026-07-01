@@ -63,6 +63,8 @@ class Memory:
                     (str(key), val_str),
                 )
 
+
+
     def get_current_screenshot(self) -> str | None:
         if not self.current_obs:
             return None
