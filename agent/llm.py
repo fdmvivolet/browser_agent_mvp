@@ -120,7 +120,7 @@ class LLMClient:
                 {
                     "type": "image_url",
                     "image_url": {"url": f"data:image/jpeg;base64,{screenshot_base64}"},
-                },
+                }
             ]
 
         messages = [
@@ -164,7 +164,7 @@ class LLMClient:
                 {
                     "type": "image_url",
                     "image_url": {"url": f"data:image/jpeg;base64,{screenshot_base64}"},
-                },
+                }
             ]
 
         messages = [

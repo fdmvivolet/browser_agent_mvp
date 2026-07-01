@@ -63,13 +63,17 @@ def _snapshot_line_for_ref(snapshot_yaml: str, ref: str) -> str:
     if idx == -1:
         return ""
 
-    start = snapshot_yaml.rfind("\n", 0, idx)
-    start = start + 1 if start != -1 else 0
+    start_idx = snapshot_yaml.rfind("\n", 0, idx)
+    if start_idx == -1:
+        start_idx = 0
+    else:
+        start_idx += 1
 
-    end = snapshot_yaml.find("\n", idx)
-    end = end if end != -1 else len(snapshot_yaml)
+    end_idx = snapshot_yaml.find("\n", idx)
+    if end_idx == -1:
+        end_idx = len(snapshot_yaml)
 
-    return snapshot_yaml[start:end]
+    return snapshot_yaml[start_idx:end_idx].strip("\r")
 
 
 def _snapshot_context_for_ref(snapshot_yaml: str, ref: str, radius: int = 2) -> str:
